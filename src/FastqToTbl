@@ -1,0 +1,22 @@
+#! /bin/sh
+#author - http://genome.crg.es/software/geneid/docs/training/software/FastaToTbl
+#The current version of geneid has been written by Enrique Blanco, Tyler Alioto and Roderic Guigó. 
+#The parameter files have been constructed by Genis Parra, Tyler Alioto and Francisco Camara. 
+#With contributions from Josep F.Abril, Moises Burset, and Xavier Messeguer. 
+#modified by Caleb Davis for fastq - assumes 4-line records
+awk 'BEGIN{newrec=5}{
+	if (newrec==5) {
+		if (NR>1)
+			printf "\n%s ", substr($1,2,length($1)-1);
+		else 
+			printf "%s ", substr($1,2,length($1)-1);
+		newrec=2;
+	}
+	else {
+		if (newrec<4)
+			printf "%s", $0 " ";
+		else
+			printf "%s", $0;
+		newrec++;
+	}
+}END{printf "\n"}'  "$@"
