@@ -38,7 +38,7 @@ for d in 4_11 12_21 9_22 1_19; do
 		srfq=$(readlink -f $2)
 	    else
 		echo "sr2sv stackedreads.txt stackedreads.fastq"
-		exit 0
+		exit 1
 	fi
 
 	#dedicate folder to candidate junction fasta files

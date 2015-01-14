@@ -26,7 +26,7 @@ if [[ ( -e $1 ) ]]
 	srfq=$(readlink -f $2)
     else
         echo "sr2sv stackedreads.txt stackedreads.fastq"
-        exit 0
+        exit 1
 fi
 
 ### align stacking reads to candidate junctions

@@ -34,7 +34,7 @@ if [[ ( -e $1 ) ]]
 	f=$(readlink -f $1)
     else
         echo "flowsim2bam ref.fa"
-        exit 0
+        exit 1
 fi
 
 ###### make BAM file from input fastq

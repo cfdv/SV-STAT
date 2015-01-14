@@ -28,7 +28,7 @@ if [[ ( $# -gt 0 ) && ( $1 -gt 0 ) && ( -e $2 ) ]]
 	srfq=$(readlink -f $2)
     else
         echo "multi_aln_sr2cj max_procs stacked_reads.fastq"
-        exit 0
+        exit 1
 fi
 
 
@@ -57,7 +57,7 @@ for d in *; do
 
 	cd $d;
 	#run the job
-	{ aln_sr2cj $srfq & };
+	{ $SVSTAT_SRC_DIR/aln_sr2cj.sh $srfq & };
 	#add job's processID to list of running processes
 	pids=("${pids[@]}" $!);
 	cd ..;

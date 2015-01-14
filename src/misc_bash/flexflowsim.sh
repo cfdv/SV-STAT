@@ -11,7 +11,7 @@ if [[ ( $# -gt 0 ) && ( $1 -gt 0 ) ]]
         let numreads=$1
     else
         echo "flexflowsim number_of_reads"
-        exit 0
+        exit 1
 fi
 
 # set the weights of the 3 distributions. 

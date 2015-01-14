@@ -12,7 +12,7 @@ if [[ ( -e $1 ) && ( $2 -gt 0 ) ]]
         let numreads=$2
     else
         echo "flexflowsim_flexcap fasta number_of_reads"
-        exit 0
+        exit 1
 fi
 
 # set the weights of the 3 distributions. 

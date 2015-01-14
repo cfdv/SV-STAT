@@ -23,20 +23,16 @@ sub trim($){
 
 sub local_fetchrefdna{
 	#this code retrieves a range of dna given assembly chromosome, start, and stop
-	#assumes genomic sequence data is on external hardrive e/vegadata/cdavis/goldenpath/hg*/chromosomes/chr*.ol
-	#	or on linux box at /home/cdavis/goldenpath/...
-	#furthermore, assumes .ol format, where fasta header is stripped, and entire sequence is stored on the first line of the file.
+	#assumes .ol format, where fasta header is stripped, and entire sequence is stored on the first line of the file.
 	#usage: my $seq = local_fetchrefdna(assembly,chr,start,stop)
-	my $assembly = shift;
+	my $assembly = shift;  #path to reference genome; e.g. /path/to/hg19 with $assembly/chromosomes/$chr.ol
 	my $chr = shift;
 	my $start = shift;
 	my $stop = shift;
 
-	#define path to the reference sequence from this directory
-	#my $path = "/cygdrive/e/vegadata/cdavis/goldenpath/";		#on external hard drive
-	#my $path = "data/home/cdavis/goldenpath/";			#on old linux box
-	my $path = "/home/cdavis/goldenpath/";				#on new linux box	
-	my $filename = $path . $assembly . "/chromosomes/$chr" . ".ol"; 
+	#define path to the chromosome files in the assembly directory
+	#TODO: use samtools instead of .ol
+	my $filename = $assembly . "/chromosomes/$chr" . ".ol";         #e.g. /path/to/hg19/chromosomes/chr22.ol
 	open(SEQ, "<$filename") || die("Cannot open $filename");
 	
 	my $seqout = '';
@@ -89,30 +85,19 @@ sub make_translocations{
 	#output: junction hash with all candidate junctions of derA. It contains an identifier ['Achr':'(1-based) Abreakpoint coordinate'-'Aori'_'Bchr':'(1-based) Bbreakpoint coordinate'-'Bori'] and sequence for each candidate translocation junction.
 	#	regardless of orientation, the start coordinate is always less than or equal to the stop coordinate for A,B,and junction hashes. 
 	#usage: my $juns = make_translocations($outfile,\%Astacks,\%Bstacks)
-	my ($outfile,$first_stacks,$second_stacks) = @_;
+	my ($outfile,$first_stacks,$second_stacks,$first_ori,$second_ori,$first_type,$second_type) = @_;
 	
 	#which chromosomes are we dealing with? A and Bstacks should have one chromosome represented, each, and they should not be the same chromosome
 	my @first_chr = keys(%{$first_stacks});
 	my @second_chr = keys(%{$second_stacks});
-	( ( (@second_chr == 1) && (@first_chr == 1) ) && ( ($first_chr[0] ne $second_chr[0]) ) ) || die("make_translocations: There are too many chromosomes represented in your stacks, or you are trying to create a translocation between two regions in the same chromosome.\n");
+  #TODO: fix the name of this function to make_SV
+	#( ( (@second_chr == 1) && (@first_chr == 1) ) && ( ($first_chr[0] ne $second_chr[0]) ) ) || die("make_translocations: There are too many chromosomes represented in your stacks, or you are trying to create a translocation between two regions in the same chromosome.\n");
 
-	#configure junction -- AqBq by default
-	my $first_reg = {stacks=>$first_stacks, chrm=>$first_chr[0], type=>"end", ori=>"+"};
-	my $second_reg = {stacks=>$second_stacks, chrm=>$second_chr[0], type=>"start", ori=>"+"};
+	#configure junction
+	my $first_reg = {stacks=>$first_stacks, chrm=>$first_chr[0], type=>$first_type, ori=>$first_ori};
+	my $second_reg = {stacks=>$second_stacks, chrm=>$second_chr[0], type=>$second_type, ori=>$second_ori};
 	my %jun = ("A", $first_reg,
 		   "B", $second_reg);
-	#but reconfigure if necessary
-	if ($first_reg->{"chrm"} eq "chr19" || $first_reg->{"chrm"} eq "chr12"){
-		#breakpoint is on the p-arm for this der_chr, switch region order
-		$first_reg->{"type"} = "start";
-		$second_reg->{"ori"} = "-";
-		$jun{"A"} = $second_reg;
-		$jun{"B"} = $first_reg;
-	} elsif ($first_reg->{"chrm"} eq "chr1" || $first_reg->{"chrm"} eq "chr21"){
-		#flip the second region coming from a p-arm
-		$second_reg->{"type"} = "end";
-		$second_reg->{"ori"} = "-";
-	}
 
 	#my $Astacktype = $Atype->[0];	#"start" and "end" refer to which side of the stack the tail is on. Therefore "end" stacks are forward stacks, and "start" stacks are reverse stacks. These terms are used interchangeably
 	my $Astacks = $jun{"A"}->{"stacks"};
@@ -131,6 +116,7 @@ sub make_translocations{
 }
 
 sub make_inversions{
+  #TODO: allow all intrachromosomal SV -- consider deleting this function if "make_translocations" also works for intrachromosomal SV
 	#input: one hash of the form $stacks{$chr}{$stacktype}{$coord} with "seq", "sum_tail_lengths", "has_significant_tail", and "reads" keys
 	#output: hash of junctions with all candidate junctions for invA. It contains an identifier ['Achr':'(1-based) Abreakpoint1 coordinate'-'Aori'_'Achr':'(1-based) Abreakpoint2 coordinate'-'Aori'] and sequence for each candidate inversion junction.
 	#usage: my $juns = make_inversions($outfile,\%Astacks)
@@ -181,22 +167,40 @@ sub junction_pass_qc{
 	return $junction_qc;
 }
 
+sub flip_stacktype{
+	#input: type of stack, either "end" or "start". These correspond to breakpoints with tails (unaligned portion of reads)
+  # pointing down- or up-stream, respectively
+	#output: "end" if input is "start", or "start" if input is "end"
+	#usage: flip_stacktype($my_stacktype)
+  #TODO: error check
+	my ($input_stacktype) = @_;
+  if ($input_stacktype eq "start") {return "end";} elsif ($input_stacktype eq "end") {return "start";}
+}
+
+sub flip_ori{
+	#input: type of orientation, either "+" or "-". These correspond to the forward or reverse strand in the reference
+	#output: "+" if input is "-", or "-" if input is "+"
+	#usage: flip_ori($my_ori)
+  #TODO: error check
+	my ($input_ori) = @_;
+  if ($input_ori eq "+") {return "-";} elsif ($input_ori eq "-") {return "+";}
+}
+
 #####################           MAIN              ###################################
 
-my $usage = "perl hypoDBgen.pl assembly chrA chrB models stackedreadsfile outfile\n";
+my $usage = "perl hypoDBgen.pl assembly firstchr firstori secondchr secondori reciprocal stackedreadsfile outfile\n";
 my $assembly= shift or die $usage;
-my $chrA = shift or die $usage;
-my $chrB = shift or die $usage;
-my $models = shift or die $usage;		#
+my $firstchr = shift or die $usage;
+my $firstori = shift or die $usage;
+my $secondchr = shift or die $usage;
+my $secondori = shift or die $usage;
+#sometimes $reciprocal = 0, in which case "$reciprocal = shift" evaluates as FALSE...
+my $reciprocal = shift; die $usage unless (defined $reciprocal && $reciprocal ne '');
 my $stackedreadsfile = shift or die $usage;
 my $outfile = shift or die $usage;	#fasta file of hypothetically rearranged sequences
 
 #define file IO
 open(STKRDS, "<$stackedreadsfile") || die("Cannot open $stackedreadsfile");
-
-#split out models input into toggles for each junction type
-#the 4 digits of $models correspond to toggles derA, derB, invA, and invB in that order
-my ($inc_derA,$inc_derB,$inc_invA,$inc_invB) = split(//,$models);
 
 #algorithm parameters to limit the number of junctions considered
 $significant_read_tail_length = 4;	#a junction is not considered if neither one has a read of this length or greater
@@ -257,16 +261,39 @@ while (my $line = <STKRDS>){
 }
 
 #create two stacks, one per partner chromosome
-my %Astacks = ();
-my %Bstacks = ();
-$Astacks{$chrA} = $stkrds{$chrA};	
-$Bstacks{$chrB} = $stkrds{$chrB};
+my %firststacks = ();
+my %secondstacks = ();
+$firststacks{$firstchr} = $stkrds{$firstchr};
+$secondstacks{$secondchr} = $stkrds{$secondchr};
 
-#now collect candidate junctions according to the junction type include toggle settings
-make_translocations($outfile,\%Astacks,\%Bstacks) if ($inc_derA);
-make_translocations($outfile,\%Bstacks,\%Astacks) if ($inc_derB);
-make_inversions($outfile,\%Astacks) if ($inc_invA);
-make_inversions($outfile,\%Bstacks) if ($inc_invB);
+#now collect candidate junctions according to the junction type include toggle settings (I-IV)
+#TODO: change names of functions "make_translocations" and "make_inversions" to
+#TODO(cont.):  indicate either inter- and intra-chromosomal SV. Refactoring a bit here.
+#if ($firstchr ne $secondchr){
+  if ($firstori ne $secondori){
+    my $stacktype = "end";                                                                                   # t(A;B)(q;p)
+    $stacktype = "start" unless ($firstori eq "+");
+    make_translocations($outfile,\%firststacks,\%secondstacks,$firstori,$secondori,$stacktype,$stacktype);                          # derA
+    if ($reciprocal) {
+      $stacktype = flip_stacktype($stacktype);
+      $firstori = flip_ori($firstori);
+      $secondori = flip_ori($secondori);
+      make_translocations($outfile,\%firststacks,\%secondstacks,$firstori,$secondori,$stacktype,$stacktype); # derB
+    }
+  }
+  else {                                                                                     # t(A;B)(q;q)
+    make_translocations($outfile,\%firststacks,\%secondstacks,"+","+","end","start") if ($firstori eq "+");                        # derA
+    make_translocations($outfile,\%secondstacks,\%firststacks,"+","+","end","start") if ($reciprocal || ($firstori eq "-"));   # derB
+  }
+#}
+#else {
+  #TODO: allow intra-chromosomal SV
+  #make_inversions($outfile,\%Astacks) if ($inc_I);
+  #make_inversions($outfile,\%Bstacks) if ($inc_II);
+  #make_inversions($outfile,\%Astacks) if ($inc_III);
+  #make_inversions($outfile,\%Bstacks) if ($inc_IV);
+#}
+
 
 #possibly should report the number of stacks, number of stacked reads, number of hypothetical rearrangements
 

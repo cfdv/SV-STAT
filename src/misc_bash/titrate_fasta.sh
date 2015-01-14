@@ -16,7 +16,7 @@ if [[ ( $# -gt 0 ) && ( -e $1 ) && ( $2 -gt 0 ) && ( -e $3 ) && ( $4 -gt 0 ) ]]
 	num2=$4
     else
         echo "titrate_fasta /path/to/tumor #tumor_copies /path/to/normal #normal_copies"
-        exit 0
+        exit 1
 fi
 
 for i in `seq 1 $num1`; do cat $samp1; done

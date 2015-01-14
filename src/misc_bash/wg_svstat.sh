@@ -48,7 +48,7 @@ if [[ ( -e $1 ) ]]
 	f=$(readlink -f $1)
     else
         echo "svstat ref.fa"
-        exit 0
+        exit 1
 fi
 
 #expects fastq input, presumably result of flowsim simulation of reads from a single sample

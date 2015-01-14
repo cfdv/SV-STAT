@@ -8,7 +8,7 @@ if [[ ( $# -gt 0 ) && ( $1 -gt 0 ) && ( $2 -gt 0 ) ]]
         let numprocs=$2
     else
         echo "multi_flowsim #reads #processors"
-        exit 0
+        exit 1
 fi
 
 let this_proc_numreads=$(( numreads / $(( numprocs )) ))

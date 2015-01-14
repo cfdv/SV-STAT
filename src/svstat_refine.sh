@@ -18,7 +18,7 @@ if [[ ( $# -gt 0 ) ]]
 	s=$1
     else
         echo "svstat_refine sampleID"
-        exit 0
+        exit 1
 fi
 
 #go to this sample's directory

@@ -13,9 +13,10 @@
  my $bampath = shift or die $usage;
 
  # high level API
- my $sam = Bio::DB::Sam->new(-bam => $bampath);
+ my $sam = Bio::DB::Sam->new(-bam => $bampath,
+			     -expand_flags => 1);
 
- my @targets    = $sam->seq_ids;
+ my @targets = $sam->seq_ids;
  foreach $target (@targets) {
     my $length = $sam->length($target);
     my $segment = $sam->segment(-seq_id => $target); 
@@ -34,8 +35,12 @@
       my $query_seq   = $a->query->seq->seq;
       my $query_len   = length($query_seq);
 
-      my $match_qual= $a->qual;       # quality of the match
-      print "$seqid $target $query_start $query_end $start $end $strand $match_qual $query_len\n";
+      my $match_qual  = $a->qual;       # quality of the match
+      my $read_end    = 2;              # 2nd read of pair
+      if ( $a->get_tag_values('FIRST_MATE') ) {
+        $read_end = 1;
+      }
+      print "$seqid/$read_end $target $query_start $query_end $start $end $strand $match_qual $query_len\n";
     }
 
  }

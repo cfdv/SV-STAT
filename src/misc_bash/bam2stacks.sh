@@ -35,7 +35,7 @@ if [[ ( -e $1 ) && ( -e $2 ) ]]
 	rl=$(readlink -f $2)
     else
         echo "bam2stacks bam read_lengths"
-        exit 0
+        exit 1
 fi
 
 #assumes these are the translocations you're looking for
