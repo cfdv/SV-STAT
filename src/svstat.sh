@@ -22,7 +22,6 @@
 # -sorted bam
 # -environmental variables
 #  * CDBFASTA_BIN_DIR - path to cdbfasta
-#  * SVSTAT_SRC_DIR   - path to svstat executables, e.g. FastqToTbl
 #  * PICARD_JAR_DIR   - path to picard-tools jar files
 
 # generates:
@@ -146,23 +145,23 @@ while read SVNAME FIRSTCHR FIRSTSTART FIRSTEND FIRSTORI SECONDCHR SECONDSTART SE
     if (( "$NUMREADS" < "$MAXCVG" ))
         then
             $CDBFASTA_BIN_DIR/cdbfasta -Q $MYFASTQ
-            $SVSTAT_SRC_DIR/FastqToTbl $MYFASTQ | awk '{print $1, length($2);}' > $SCRDIR/$SVNAME/read_len.txt
+            $XDIR/FastqToTbl $MYFASTQ | awk '{print $1, length($2);}' > $SCRDIR/$SVNAME/read_len.txt
             java -jar $PICARD_JAR_DIR/MarkDuplicates.jar INPUT=$SCRDIR/$SVNAME/bam/intermediates/3.bam OUTPUT=$SCRDIR/$SVNAME/bam/full/4.bam METRICS_FILE=$SCRDIR/$SVNAME/bam/full/4_metrics.txt REMOVE_DUPLICATES=true ASSUME_SORTED=true
             samtools index $SCRDIR/$SVNAME/bam/full/4.bam
-            join -j1 -o 2.1,2.2,1.2,2.3,2.4,2.5,2.6,2.7,2.8 <(sort +0 -1 $SCRDIR/$SVNAME/read_len.txt) <(perl $SVSTAT_SRC_DIR/bamtobl.pl $SCRDIR/$SVNAME/bam/full/4.bam | sort +0 -1) | awk 'BEGIN{plchldr_cols="1.2 1.4 1.5 1.6 1.7 1.8 1.9"}{ss=$6; se=$7; qs=$4; qe=$5; qlen=$3; ori="+"; if ($8!=1) {ori="-";tmp=qs; qs=qlen-qe+1; qe=qlen-tmp+1;} if (qs!=1) print $0,plchldr_cols,"start"; if (qe!=qlen) print $0,plchldr_cols,"end";}' | awk '$8<0{type=$17; if (type~/start/) $17="end"; if (type~/end/) $17="start"; print;}$8>0{print;}' | tee $SCRDIR/$SVNAME/onehit_stackedreads.txt | sort -k1,1 -k17 -u | awk '{if ($17=="start") print $2,$6,$17; else print $2,$7,$17;}' | sort | uniq -c | awk '{if ($1>1) print $2,$3,$4;}' | tee >(grep end$ > $SCRDIR/$SVNAME/fstack_coord.txt) | grep start$ > $SCRDIR/$SVNAME/rstack_coord.txt
+            join -j1 -o 2.1,2.2,1.2,2.3,2.4,2.5,2.6,2.7,2.8 <(sort +0 -1 $SCRDIR/$SVNAME/read_len.txt) <(perl $XDIR/bamtobl.pl $SCRDIR/$SVNAME/bam/full/4.bam | sort +0 -1) | awk 'BEGIN{plchldr_cols="1.2 1.4 1.5 1.6 1.7 1.8 1.9"}{ss=$6; se=$7; qs=$4; qe=$5; qlen=$3; ori="+"; if ($8!=1) {ori="-";tmp=qs; qs=qlen-qe+1; qe=qlen-tmp+1;} if (qs!=1) print $0,plchldr_cols,"start"; if (qe!=qlen) print $0,plchldr_cols,"end";}' | awk '$8<0{type=$17; if (type~/start/) $17="end"; if (type~/end/) $17="start"; print;}$8>0{print;}' | tee $SCRDIR/$SVNAME/onehit_stackedreads.txt | sort -k1,1 -k17 -u | awk '{if ($17=="start") print $2,$6,$17; else print $2,$7,$17;}' | sort | uniq -c | awk '{if ($1>1) print $2,$3,$4;}' | tee >(grep end$ > $SCRDIR/$SVNAME/fstack_coord.txt) | grep start$ > $SCRDIR/$SVNAME/rstack_coord.txt
             cat <(join -j1 -o 2.2,2.3,2.4,2.5,2.6,2.7,2.8,2.9,2.10,2.11,2.12,2.13,2.14,2.15,2.16,2.17,2.18 <(cat $SCRDIR/$SVNAME/fstack_coord.txt | awk '{print $1$2$3,$0}' | sort +0 -1) <(grep end$ $SCRDIR/$SVNAME/onehit_stackedreads.txt | awk '{print $2$7$17,$0}' | sort +0 -1)) <(join -j1 -o 2.2,2.3,2.4,2.5,2.6,2.7,2.8,2.9,2.10,2.11,2.12,2.13,2.14,2.15,2.16,2.17,2.18 <(cat $SCRDIR/$SVNAME/rstack_coord.txt | awk '{print $1$2$3,$0}' | sort +0 -1) <(grep start$ $SCRDIR/$SVNAME/onehit_stackedreads.txt | awk '{print $2$6$17,$0}' | sort +0 -1)) | awk '{if (match($2,/chr/)==1) print $0; else {$2="chr"$2;print $0;}}' | awk '{ori="+"; if ($8!=1) ori="-"; print $1,$2,"-1","-1","-1","-1",$3,$4,$5,$6,$7,ori,"-1","-1","-1_-1",$17,$9,$10,$11,$12,$13,$14,$15,$16;}' > $SCRDIR/$SVNAME/stackedreads.txt
             cut -d" " -f1 $SCRDIR/$SVNAME/stackedreads.txt | sort | uniq | $CDBFASTA_BIN_DIR/cdbyank $SCRDIR/$SVNAME/fastq/samtools-bam2fq.fastq.cidx > $SCRDIR/$SVNAME/stackedreads.txt.fastq
-            $SVSTAT_SRC_DIR/FastqToTbl $SCRDIR/$SVNAME/stackedreads.txt.fastq | awk '{print ">"$1"\n"$2;}' > $SCRDIR/$SVNAME/stackedreads.txt.fasta
+            $XDIR/FastqToTbl $SCRDIR/$SVNAME/stackedreads.txt.fastq | awk '{print ">"$1"\n"$2;}' > $SCRDIR/$SVNAME/stackedreads.txt.fasta
             #TODO FIX THIS TO choose the correct set of models given AORI and BORI
             cd $SCRDIR/$SVNAME/candidates
-            perl $SVSTAT_SRC_DIR/hypoDBgen.pl $REF_DIR $FIRSTCHR $FIRSTORI $SECONDCHR $SECONDORI $RECIPROCAL ../stackedreads.txt derAB.fasta
+            perl $XDIR/hypoDBgen.pl $REF_DIR $FIRSTCHR $FIRSTORI $SECONDCHR $SECONDORI $RECIPROCAL ../stackedreads.txt derAB.fasta
             #TODO parameterize number of processors for multi_aln_sr2cj.sh -- currently 1
-            #$SVSTAT_SRC_DIR/multi_aln_sr2cj.sh 1 ../stackedreads.txt.fastq
+            #$XDIR/multi_aln_sr2cj.sh 1 ../stackedreads.txt.fastq
             for d in *; do
                 if [ -d "$d" ]
                     then
                         cd $d
-                        $SVSTAT_SRC_DIR/aln_sr2cj.sh ../../stackedreads.txt.fastq
+                        $XDIR/aln_sr2cj.sh ../../stackedreads.txt.fastq
                         cd ..
                     else
                         echo "[SV-STAT:svstat.sh] no candidates for $SVNAME"
