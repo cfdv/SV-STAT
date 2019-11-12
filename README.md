@@ -12,8 +12,10 @@ docker build --rm -t cfdavis/docker-sv-stat .
 docker pull cfdavis/docker-sv-stat
 ```
 
-Then run sv-stat on some test data: 
- docker run --rm -v /path/to/reference:/work/ref -v /path/to/svstat/repo:/work/sv-stat -it cfdavis/docker-sv-stat /work/sv-stat/src/svstat.sh -m /work/sv-stat/test/bam/hs1011.bam /work/sv-stat/test/metadata/ABori.txt
+Then run sv-stat on some test data:
+```
+docker run --rm -v /path/to/reference:/work/ref -v /path/to/svstat/repo:/work/sv-stat -it cfdavis/docker-sv-stat /work/sv-stat/src/svstat.sh -m /work/sv-stat/test/bam/hs1011.bam /work/sv-stat/test/metadata/ABori.txt
+```
 
 ## Manually
 
