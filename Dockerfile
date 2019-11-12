@@ -115,26 +115,3 @@ ENV BWA_BIN_DIR=/work/bwa-0.5.9
 ENV PICARD_JAR_DIR=/work/picard-tools-1.40
 ENV BEDTOOLS_BIN_DIR=/work/bedtools-Version-2.12.0/bin
 ENV REF_DIR=/work/ref
-
-
-# ENV PORTAL_HOME /work/cbioportal
-# 
-# WORKDIR /work/cbioportal
-# 
-# # Dummy entrypoint does not add pro- or epi-log tasks 
-# ADD entrypoint.sh /entrypoint.sh
-# RUN chmod +x /entrypoint.sh
-# ENTRYPOINT [ "/entrypoint.sh" ]
-# 
-# # Use iptables to expose 8080 to the world (for Tomcat)
-# EXPOSE 8080 
-# 
-# # supervisord is used to demo multiple services in one container
-# # You would want to use systemctl enable mysqld, systemctl enable tomcat
-# RUN yum install -y supervisor
-# ADD supervisord.conf /etc/supervisord.conf
-# RUN mkdir -p /var/log/supervisor
-# RUN chmod -R 777 /var/log/supervisor
-# CMD systemctl enable mysqld
-# CMD systemctl enable tomcat
-# CMD ["/usr/bin/supervisord"]
